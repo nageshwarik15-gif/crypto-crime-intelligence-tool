@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCIT / Project Cybersleuth - Crypto Crime Intelligence Tool</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/static/styles.css">
+  <!-- Load Cytoscape for WebGL/Canvas Force-Directed graph rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+</head>
+<body>
+
+  <!-- ================= HEADER TIER ================= -->
+  <header class="header-bar">
+    <div class="brand-section">
+      <div class="police-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        POLICE-AI
+      </div>
+      <div class="brand-title">
+        CCIT <span>// PROJECT CYBERSLEUTH</span>
+      </div>
+      <div class="case-badge">
+        <span style="opacity:0.7">CASE:</span>
+        <strong id="header-case-id">#2026-CR-8902</strong>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="officer-info">
+        <span class="officer-name">Det. J. Vance</span>
+        <span class="officer-badge">BADGE #401 • CYBERCRIME</span>
+      </div>
+
+      <select id="rbac-selector" class="rbac-badge" title="Role-Based Access Control (RBAC Tier)">
+        <option value="Lead Detective" selected>Role: Lead Detective (Warrants & Leads)</option>
+        <option value="Analyst">Role: Analyst (Triage Only)</option>
+        <option value="Legal Auditor">Role: Legal Auditor (Sign-Off)</option>
+        <option value="Administrator">Role: Administrator</option>
+      </select>
+
+      <button id="btn-benchmark-matrix" class="btn-header" title="Run formal automated acceptance test suite">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 11 12 14 22 4"></polyline>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+        </svg>
+        Verification Matrix (VR-01 to 05)
+      </button>
+
+      <button id="btn-view-audit" class="btn-header" title="Inspect ISO 27037 chained SHA-256 audit log">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        Audit Chain Log
+      </button>
+
+      <button id="btn-export-dossier" class="btn-header accent" title="Export tamper-evident PDF intelligence report">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+          <line x1="16" y1="13" x2="8" y2="13"></line>
+          <line x1="16" y1="17" x2="8" y2="17"></line>
+        </svg>
+        Export Court Dossier (PDF)
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= CONTROLS & PRESET BAR ================= -->
+  <div class="controls-bar">
+    <div class="controls-row">
+      <div class="input-group">
+        <span class="input-label">Target Seed:</span>
+        <input type="text" id="input-seed-address" class="text-input" value="0x098b716b8aaf21512996dc57eb0615e2383e2f96" placeholder="0x... or Bitcoin address">
+      </div>
+
+      <div class="input-group">
+        <span class="input-label">Chain:</span>
+        <select id="select-network" class="select-input">
+          <option value="ETH" selected>Ethereum (EVM / ERC-20)</option>
+          <option value="BTC">Bitcoin (UTXO)</option>
+          <option value="TRON">Tron (TRC-20)</option>
+        </select>
+      </div>
+
+      <div class="slider-group">
+        <span class="input-label">Hops:</span>
+        <input type="range" id="slider-hops" min="1" max="8" value="4">
+        <span id="hops-value" style="font-family:var(--font-mono); font-weight:bold; color:var(--accent-cyan)">4</span>
+      </div>
+
+      <div class="input-group">
+        <span class="input-label">Taint Model:</span>
+        <select id="select-taint-model" class="select-input">
+          <option value="POISON" selected>Poison Taint (Total Contagion)</option>
+          <option value="FIFO">FIFO (Chronological Sat/Wei)</option>
+          <option value="PROPORTIONAL">Proportional (Haircut Dilution)</option>
+        </select>
+      </div>
+
+      <button id="btn-run-investigation" class="btn-primary">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        Run Trace & Detect
+      </button>
+    </div>
+
+    <!-- Quick Case Presets -->
+    <div class="controls-row">
+      <div class="presets-container">
+        <span class="input-label" style="font-size:10px;">Forensic Benchmarks:</span>
+        <div class="preset-chip" data-scenario="peel_chain">
+          <span>🔗 Case 1: Bitcoin Peel Chain (BTC)</span>
+        </div>
+        <div class="preset-chip" data-scenario="lazarus">
+          <span>🌪️ Case 2: Lazarus Mixer & Bridge (ETH)</span>
+        </div>
+        <div class="preset-chip" data-scenario="smurfing">
+          <span>👥 Case 3: Smurfing Ring (ETH/USDT)</span>
+        </div>
+        <div class="preset-chip" data-scenario="rapid_layering">
+          <span>⚡ Case 4: Rapid Layering (ETH)</span>
+        </div>
+      </div>
+
+      <div class="metrics-strip">
+        <div class="metric-item">Nodes: <span id="stat-nodes" class="metric-val">0</span></div>
+        <div class="metric-item">Transfers: <span id="stat-edges" class="metric-val">0</span></div>
+        <div class="metric-item">Clusters: <span id="stat-clusters" class="metric-val">0</span></div>
+        <div class="metric-item">Flagged Leads: <span id="stat-alerts" class="metric-val" style="color:#ef4444">0</span></div>
+        <div class="metric-item">Latency: <span id="stat-latency" class="metric-val">0 ms</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN WORKSPACE ================= -->
+  <main class="main-workspace">
+    
+    <!-- LEFT: Canvas Graph Workspace -->
+    <section class="graph-viewport">
+      <div class="canvas-toolbar">
+        <button id="btn-fit" class="tool-btn" title="Fit to Screen">⛶</button>
+        <button id="btn-zoom-in" class="tool-btn" title="Zoom In">+</button>
+        <button id="btn-zoom-out" class="tool-btn" title="Zoom Out">−</button>
+        <button id="btn-toggle-physics" class="tool-btn" title="Toggle Layout Force Physics">⚡</button>
+        <button id="btn-toggle-taint-view" class="tool-btn" title="Toggle Taint Overlay Heatmap">🔥</button>
+      </div>
+
+      <!-- Graph Container -->
+      <div id="graph-canvas"></div>
+
+      <!-- Legend -->
+      <div class="legend-card">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#0284c7; box-shadow:0 0 6px #0284c7"></div>
+          <span>Seed Subject Wallet</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ef4444; box-shadow:0 0 6px #ef4444"></div>
+          <span>High Suspicion (Score ≥ 60)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#a855f7; box-shadow:0 0 6px #a855f7"></div>
+          <span>Attributed VASP / Mixer / Bridge</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#f59e0b"></div>
+          <span>Tainted Intermediary (Poison/FIFO)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#10b981"></div>
+          <span>Clean Retail (&lt; 30)</span>
+        </div>
+      </div>
+
+      <!-- BOTTOM: Temporal Playback Scrubber (FR-4.2) -->
+      <div class="timeline-scrubber">
+        <div class="playback-controls">
+          <button id="btn-scrub-prev" class="btn-step" title="Previous Block Step">◀◀</button>
+          <button id="btn-play-pause" class="btn-play" title="Auto-Play Chronological Fund Flow">▶</button>
+          <button id="btn-scrub-next" class="btn-step" title="Next Block Step">▶▶</button>
+        </div>
+
+        <div class="timeline-slider-wrap">
+          <input type="range" id="timeline-slider" class="timeline-slider" min="0" max="100" value="100">
+          <div class="timeline-labels">
+            <span id="timeline-start-time">Origin Block</span>
+            <span>Historical Flow Timeline</span>
+            <span id="timeline-end-time">Latest Block</span>
+          </div>
+        </div>
+
+        <div id="timeline-current-label" class="timeline-current-time">
+          Replay: 100% (Complete)
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: Inspector & Evidence Card Drawer -->
+    <aside class="inspector-drawer">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          FORENSIC DOSSIER DRAWER
+        </div>
+        <span id="drawer-cluster-tag" class="risk-badge" style="background:#1e293b; color:#94a3b8">CLUSTER #--</span>
+      </div>
+
+      <!-- Entity Cluster Profile -->
+      <div class="drawer-section">
+        <div class="section-label">
+          <span>Entity Cluster Resolution (UC-80)</span>
+          <span id="cluster-heuristic-badge" style="font-family:var(--font-mono); color:#38bdf8">--</span>
+        </div>
+        <div style="font-size:11.5px; color:#cbd5e1; display:flex; flex-direction:column; gap:4px;">
+          <div><strong>Primary Address:</strong> <span id="entity-primary-address" class="hash-cell">Select a node in graph</span></div>
+          <div><strong>Attribution Tag:</strong> <span id="entity-attribution" style="color:#a855f7; font-weight:600">Unlabeled Private Actor</span></div>
+          <div><strong>Cluster Members:</strong> <span id="entity-wallets-count">0</span> addresses proven controlled</div>
+          <div><strong>Net Volume Flow:</strong> <span id="entity-net-volume" style="font-family:var(--font-mono); font-weight:bold">$0.00 USD</span></div>
+          <div><strong>Taint Contamination:</strong> <span id="entity-taint-level" style="font-family:var(--font-mono); color:#f59e0b">0.0%</span></div>
+        </div>
+      </div>
+
+      <!-- Suspicion Score Gauge -->
+      <div class="drawer-section">
+        <div class="section-label">
+          <span>Calibrated Suspicion Score (UC-83)</span>
+          <span id="risk-tier-label" class="risk-badge" style="background:#1e293b; color:#94a3b8">LOW</span>
+        </div>
+        <div class="gauge-container">
+          <div class="gauge-details">
+            <span class="score-number" id="suspicion-score-display">0.0</span>
+            <span style="font-size:11px; color:var(--text-dim);">Formula: min(100, 100·∑w·f·[1+Taint])</span>
+          </div>
+          <div class="gauge-bar-bg">
+            <div id="gauge-bar" class="gauge-bar-fill" style="width: 0%; background: #10b981;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Explainable AI (XAI) Evidence Card -->
+      <div class="drawer-section">
+        <div class="section-label">
+          <span>Explainable AI Evidence Card (FR-83.3)</span>
+        </div>
+
+        <div id="xai-evidence-container">
+          <div class="xai-card">
+            <div class="xai-headline" id="xai-headline">Awaiting Investigation Scan</div>
+            <div id="xai-narrative" style="margin-top:4px;">
+              Click "Run Trace & Detect" or load one of the benchmark scenarios above to analyze graph topologies and synthesize XAI evidence cards.
+            </div>
+          </div>
+
+          <div id="xai-action-box" class="action-card" style="display:none;">
+            <strong>Recommended Investigative Action:</strong>
+            <div id="xai-action-text" style="margin-top:2px;"></div>
+          </div>
+
+          <div id="xai-notes-box" style="display:none;">
+            <div style="font-size:10.5px; font-weight:700; color:var(--text-dim); text-transform:uppercase; margin-top:8px;">Defense Counsel Audit Checklist:</div>
+            <ul id="xai-defense-list" class="defense-notes"></ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- HITL Decision Section (FR-4.3) -->
+      <div class="drawer-section" style="border-bottom:none;">
+        <div class="section-label">
+          <span>Human-In-The-Loop Decision (FR-4.3)</span>
+          <span style="color:#ef4444; font-size:10px;">MANDATORY HITL</span>
+        </div>
+
+        <div class="hitl-container">
+          <div class="hitl-btn-row">
+            <button id="btn-hitl-lead" class="btn-confirm">✓ CONFIRM AS LEAD</button>
+            <button id="btn-hitl-dismiss" class="btn-dismiss">✕ DISMISS (FALSE POS)</button>
+          </div>
+
+          <textarea id="hitl-warrant-input" class="warrant-input" placeholder="Enter judicial warrant reference & justification (e.g., Warrant #2026-W-401 target wallet match, subpoena issued to exchange)..."></textarea>
+
+          <div id="hitl-seal-badge" class="hitl-status-badge" style="display:none;">
+            Evidentiary Seal: <span id="hitl-seal-hash">--</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- Modal: ISO 27037 Cryptographic Chained Audit Log -->
+  <div id="modal-audit" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="font-size:14px; font-weight:700; color:#f8fafc; display:flex; align-items:center; gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          ISO/IEC 27037 Cryptographic Chained Audit Trail
+        </h3>
+        <button class="tool-btn btn-close-modal" data-target="modal-audit">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div style="display:flex; justify-content:space-between; align-items:center; background:#111a2e; padding:8px 12px; border-radius:4px; border:1px solid var(--border-color);">
+          <div>
+            <strong>Chain Validation Status:</strong>
+            <span id="audit-chain-status" class="badge-pill passed">VALIDATED</span>
+          </div>
+          <button id="btn-run-tamper-demo" class="btn-header" style="background:#7f1d1d; border-color:#ef4444; color:#fff">
+            Run DV-04 1-Bit Tamper Test
+          </button>
+        </div>
+
+        <div id="tamper-test-result" style="display:none; padding:8px 12px; background:rgba(239, 68, 68, 0.15); border:1px solid #ef4444; border-radius:4px; font-size:11px;">
+          <!-- Tamper output goes here -->
+        </div>
+
+        <div style="max-height: 400px; overflow-y: auto;">
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Log #</th>
+                <th>UTC Timestamp</th>
+                <th>Investigator</th>
+                <th>Action Type</th>
+                <th>Resource ID</th>
+                <th>Previous SHA-256</th>
+                <th>Entry SHA-256 Digest</th>
+              </tr>
+            </thead>
+            <tbody id="audit-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-header btn-close-modal" data-target="modal-audit">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Acceptance Matrix & Verification Matrix (VR-01 to VR-05) -->
+  <div id="modal-benchmarks" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="font-size:14px; font-weight:700; color:#f8fafc; display:flex; align-items:center; gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          Formal Verification Matrix (SRS Section 4 & SDD Section 4.3)
+        </h3>
+        <button class="tool-btn btn-close-modal" data-target="modal-benchmarks">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="color:var(--text-muted); font-size:12px;">
+          The evaluation testbed validates full compliance against national Police-AI standards (IEEE 830-1998, ISO/IEC 27037).
+        </p>
+
+        <table class="table-custom">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Requirement Target</th>
+              <th>Police-AI Framework Role</th>
+              <th>Acceptance Criteria</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="benchmark-matrix-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button id="btn-re-run-benchmarks" class="btn-primary">Re-Run Automated Suite</button>
+        <button class="btn-header btn-close-modal" data-target="modal-benchmarks">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
