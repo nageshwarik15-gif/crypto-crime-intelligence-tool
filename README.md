@@ -126,6 +126,11 @@ crypto_project/
 | **VR-03 / DV-03** | Typology Detection Recall | Peel Chains, Layering, Smurfing | **PASSED (> 95% Recall)** |
 | **VR-04** | Explainable AI (XAI) Generation | Natural-Language Rationale & Checklist | **PASSED (Auditable)** |
 | **VR-05 / DV-04** | ISO 27037 Audit & Tamper Test | Chained SHA-256 & 1-Bit Invalidation | **PASSED (Tamper Invalidation Verified)** |
+---
+## 🎥 Project Demo
 
+Watch the screen recording of the Crypto Crime Intelligence Tool below.
+
+[▶️ Watch Project Demo](demo.mp4)
 ---
 *Developed strictly in accordance with IEEE STD 830-1998, ISO/IEC 27037, and Section 4 of the National Police-AI Framework.*
